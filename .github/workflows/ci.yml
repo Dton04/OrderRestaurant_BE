@@ -1,0 +1,32 @@
+name: NestJS Prisma CI
+
+on:
+  push:
+    branches: [ main, develop ] # Chạy khi push vào main hoặc develop
+  pull_request:
+    branches: [ main, develop ] # Chạy khi ai đó tạo Pull Request vào 2 nhánh này
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22' # Khớp với bản Node bạn đang dùng (v22.14.0)
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }} # Lấy từ GitHub Secrets
+
+      - name: Run Build
+        run: npm run build
