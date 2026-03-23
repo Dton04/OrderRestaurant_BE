@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Put, Param, Delete, UseGuards, Request, Qu
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 
@@ -13,9 +14,9 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @Put('profile')
-  @ApiOperation({ summary: 'Update Profile (EP4)' })
-  updateProfile(@Request() req, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(BigInt(req.user.userId), updateUserDto);
+  @ApiOperation({ summary: 'Update Profile (EP4) ' })
+  updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
+    return this.userService.update(BigInt(req.user.userId), updateProfileDto);
   }
 
   @UseGuards(JwtAuthGuard)

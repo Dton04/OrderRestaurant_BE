@@ -10,16 +10,15 @@ export class AuthService {
   constructor(
     private readonly userService: UserService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   async register(registerDto: RegisterDto) {
     const role = await this.userService.findRoleByName('CUSTOMER');
     if (!role) {
       throw new BadRequestException('Role CUSTOMER not found');
     }
-    
     const user = await this.userService.create(registerDto, role.id);
-    
+
     return {
       id: user.id.toString(),
       full_name: user.full_name,
@@ -37,14 +36,13 @@ export class AuthService {
     if (user.deleted_at) {
       throw new UnauthorizedException('Account locked');
     }
-
     const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const payload = { sub: user.id.toString(), email: user.email, role_id: user.role_id.toString() };
-    
+
     return {
       access_token: this.jwtService.sign(payload),
       token_type: 'Bearer',
