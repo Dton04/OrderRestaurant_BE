@@ -10,7 +10,10 @@ export class TableRepository {
   }
 
   async findById(id: bigint) {
-    return this.prisma.table.findUnique({ where: { id }, include: { area: true } });
+    return this.prisma.table.findUnique({
+      where: { id },
+      include: { area: true },
+    });
   }
 
   async create(data: any) {

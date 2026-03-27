@@ -10,7 +10,10 @@ export class PaymentRepository {
   }
 
   async findById(id: bigint) {
-    return this.prisma.payment.findUnique({ where: { id }, include: { order: true } });
+    return this.prisma.payment.findUnique({
+      where: { id },
+      include: { order: true },
+    });
   }
 
   async create(data: any) {

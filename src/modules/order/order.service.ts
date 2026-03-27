@@ -9,20 +9,20 @@ export class OrderService {
 
   async create(createOrderDto: CreateOrderDto) {
     const { items, ...orderData } = createOrderDto;
-    
+
     // Formatting data for Prisma nested write
     const createData = {
       ...orderData,
       order_items: {
-        create: items.map(item => ({
+        create: items.map((item) => ({
           dish_id: item.dish_id,
           quantity: item.quantity,
           price_at_order: item.price_at_order,
-          status: 'PENDING'
-        }))
-      }
+          status: 'PENDING',
+        })),
+      },
     };
-    
+
     return this.orderRepository.create(createData);
   }
 
