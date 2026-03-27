@@ -33,6 +33,9 @@ export class CreateOrderDto {
   @ApiProperty({ example: 'PENDING', description: 'Order Status' })
   status: string;
 
-  @ApiProperty({ type: [CreateOrderItemDto], description: 'List of ordered items' })
+  @ApiProperty({
+    type: [CreateOrderItemDto],
+    description: 'List of ordered items',
+  })
   items: CreateOrderItemDto[];
 }

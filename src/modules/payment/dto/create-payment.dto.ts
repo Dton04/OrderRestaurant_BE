@@ -7,12 +7,19 @@ export class CreatePaymentDto {
   @ApiProperty({ example: 25.98, description: 'Amount paid' })
   amount: number;
 
-  @ApiProperty({ example: 'CARD', description: 'Payment method (CASH, CARD, MOMO, VNPAY)' })
+  @ApiProperty({
+    example: 'CARD',
+    description: 'Payment method (CASH, CARD, MOMO, VNPAY)',
+  })
   method: string;
 
   @ApiProperty({ example: 'SUCCESS', description: 'Payment status' })
   status: string;
 
-  @ApiProperty({ example: 'txn_123456789', description: 'Transaction ID from provider', required: false })
+  @ApiProperty({
+    example: 'txn_123456789',
+    description: 'Transaction ID from provider',
+    required: false,
+  })
   transaction_id?: string;
 }

@@ -9,25 +9,29 @@ export class UserService {
   constructor(private readonly userRepository: UserRepository) {}
 
   async create(createUserDto: any, roleId: bigint) {
-    const existingEmail = await this.userRepository.findByEmail(createUserDto.email);
+    const existingEmail = await this.userRepository.findByEmail(
+      createUserDto.email,
+    );
     if (existingEmail) {
       throw new ConflictException('Email already exists');
     }
 
     if (createUserDto.phone) {
-      const existingPhone = await this.userRepository.findByPhone(createUserDto.phone);
+      const existingPhone = await this.userRepository.findByPhone(
+        createUserDto.phone,
+      );
       if (existingPhone) {
         throw new ConflictException('Phone already exists');
       }
     }
-    
+
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
     const dataToSave = {
       ...createUserDto,
       password: hashedPassword,
       role_id: roleId,
     };
-    
+
     return this.userRepository.create(dataToSave);
   }
 

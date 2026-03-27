@@ -30,4 +30,4 @@ import { PrismaModule } from './common/prisma/prisma.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

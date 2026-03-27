@@ -7,9 +7,15 @@ export class UpdateProfileDto {
   @IsString()
   full_name: string;
 
-  @ApiProperty({ example: '0988776655', description: 'Phone number', required: false })
+  @ApiProperty({
+    example: '0988776655',
+    description: 'Phone number',
+    required: false,
+  })
   @IsOptional()
   @IsString()
-  @Matches(/(84|0[3|5|7|8|9])+([0-9]{8})\b/, { message: 'Invalid Vietnamese phone number' })
+  @Matches(/(84|0[3|5|7|8|9])+([0-9]{8})\b/, {
+    message: 'Invalid Vietnamese phone number',
+  })
   phone?: string;
 }

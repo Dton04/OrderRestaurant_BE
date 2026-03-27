@@ -10,11 +10,17 @@ export class UserRepository {
   }
 
   async findById(id: bigint) {
-    return this.prisma.user.findUnique({ where: { id }, include: { role: true } });
+    return this.prisma.user.findUnique({
+      where: { id },
+      include: { role: true },
+    });
   }
 
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({ where: { email }, include: { role: true } });
+    return this.prisma.user.findUnique({
+      where: { email },
+      include: { role: true },
+    });
   }
 
   async findByPhone(phone: string) {
