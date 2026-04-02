@@ -41,6 +41,46 @@ export class OrderController {
     return this.orderService.findOne(BigInt(id));
   }
 
+  @Get('items/:item_id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Item Preparation Notes (Chef/Staff/Admin)' })
+  getItemPreparationNotes(@Param('item_id') itemId: string) {
+    return this.orderService.getItemPreparationNotes(BigInt(itemId));
+  }
+
+  @Get('chef/daily-summary')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Chef Daily Summary (Chef/Admin)' })
+  getChefDailySummary() {
+    return this.orderService.getChefDailySummary();
+  }
+
+  @Get('kitchen/queue')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Kitchen Queue (Chef/Admin)' })
+  getKitchenQueue() {
+    return this.orderService.getKitchenQueue();
+  }
+
+  @Patch('items/:item_id/start')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Kitchen Start Cooking (Chef/Admin)' })
+  startCooking(@Param('item_id') itemId: string) {
+    return this.orderService.startCooking(BigInt(itemId));
+  }
+
+  @Patch('items/:item_id/finish')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Kitchen Finish Item (Chef/Admin)' })
+  finishKitchenItem(@Param('item_id') itemId: string) {
+    return this.orderService.finishKitchenItem(BigInt(itemId));
+  }
+
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
