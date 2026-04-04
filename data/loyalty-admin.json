@@ -1,0 +1,58 @@
+{
+  "rules": [
+    {
+      "id": "rule_welcome_gold",
+      "name": "Standard Dining Points",
+      "pointsPerTransaction": 10,
+      "minimumSpend": 50,
+      "startDate": "2026-01-01",
+      "status": "ACTIVE",
+      "updatedAt": "2026-04-04T15:56:12.628Z"
+    },
+    {
+      "id": "rule_weekend_bonus",
+      "name": "Weekend Premium Bonus",
+      "pointsPerTransaction": 20,
+      "minimumSpend": 120,
+      "startDate": "2026-02-15",
+      "status": "ACTIVE",
+      "updatedAt": "2026-04-04T16:00:08.246Z"
+    }
+  ],
+  "rewards": [
+    {
+      "id": "reward_private_room",
+      "name": "Private Room Upgrade",
+      "description": "Private room upgrade for one reservation session.",
+      "voucherTemplate": "VIP-ROOM-UPGRADE",
+      "pointsRequired": 1500,
+      "redemptionCount": 6,
+      "status": "ACTIVE",
+      "createdAt": "2026-04-04T15:56:12.628Z",
+      "updatedAt": "2026-04-04T15:59:38.121Z"
+    }
+  ],
+  "history": [
+    {
+      "id": "history_1",
+      "userName": "Annie Case",
+      "rewardName": "Signature 15% Voucher",
+      "pointsSpent": 600,
+      "redeemedAt": "2026-03-21T10:15:00.000Z"
+    },
+    {
+      "id": "history_2",
+      "userName": "Marcus Lee",
+      "rewardName": "Private Room Upgrade",
+      "pointsSpent": 1500,
+      "redeemedAt": "2026-03-18T18:30:00.000Z"
+    },
+    {
+      "id": "history_3",
+      "userName": "Sara Nguyen",
+      "rewardName": "Signature 15% Voucher",
+      "pointsSpent": 600,
+      "redeemedAt": "2026-03-15T12:00:00.000Z"
+    }
+  ]
+}

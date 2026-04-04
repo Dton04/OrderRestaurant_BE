@@ -10,6 +10,8 @@ import { TableModule } from './modules/table/table.module';
 import { AreaModule } from './modules/area/area.module';
 import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { LoyaltyModule } from './modules/loyalty/loyalty.module';
+import { VoucherModule } from './modules/voucher/voucher.module';
 import { PrismaModule } from './common/prisma/prisma.module';
 
 @Module({
@@ -26,6 +28,8 @@ import { PrismaModule } from './common/prisma/prisma.module';
     AreaModule,
     OrderModule,
     PaymentModule,
+    LoyaltyModule,
+    VoucherModule,
   ],
   controllers: [AppController],
   providers: [AppService],

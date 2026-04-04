@@ -1,0 +1,16 @@
+{
+  "1": {
+    "description": "sfsd",
+    "usageType": "LIMITED",
+    "usageLimit": 0,
+    "usageCount": 0,
+    "isDraft": false
+  },
+  "2": {
+    "description": "cxc",
+    "usageType": "LIMITED",
+    "usageLimit": 0,
+    "usageCount": 0,
+    "isDraft": false
+  }
+}
