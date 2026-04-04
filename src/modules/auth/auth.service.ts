@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
+import type { StringValue } from 'ms';
 
 @Injectable()
 export class AuthService {
@@ -31,7 +32,11 @@ export class AuthService {
       { ...payload, token_type: 'refresh' },
       {
         secret: this.getRefreshSecret(),
-        expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN ?? '7d') as any,
+        expiresIn:
+          process.env.JWT_REFRESH_EXPIRES_IN &&
+          /^\d+$/.test(process.env.JWT_REFRESH_EXPIRES_IN)
+            ? Number(process.env.JWT_REFRESH_EXPIRES_IN)
+            : ((process.env.JWT_REFRESH_EXPIRES_IN ?? '7d') as StringValue),
       },
     );
   }
@@ -91,7 +96,7 @@ export class AuthService {
       throw new UnauthorizedException('Missing refresh token');
     }
 
-    let payload: any;
+    let payload: unknown;
     try {
       payload = await this.jwtService.verifyAsync(refreshToken, {
         secret: this.getRefreshSecret(),
@@ -100,11 +105,26 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    if (payload?.token_type !== 'refresh') {
+    if (!payload || typeof payload !== 'object') {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    const user = await this.userService.findOne(BigInt(payload.sub));
+    const payloadRecord = payload as Record<string, unknown>;
+    const tokenType = payloadRecord['token_type'];
+    if (tokenType !== 'refresh') {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const sub = payloadRecord['sub'];
+    if (
+      typeof sub !== 'string' &&
+      typeof sub !== 'number' &&
+      typeof sub !== 'bigint'
+    ) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    const user = await this.userService.findOne(BigInt(sub));
     if (user.deleted_at) {
       throw new UnauthorizedException('Account locked');
     }

@@ -4,9 +4,10 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 
 // Fix BigInt serialization
-(BigInt.prototype as any).toJSON = function () {
-  return this.toString();
-};
+(BigInt.prototype as unknown as { toJSON: (this: bigint) => string }).toJSON =
+  function (this: bigint) {
+    return this.toString();
+  };
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -25,4 +26,4 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap();
+void bootstrap();

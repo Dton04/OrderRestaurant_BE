@@ -94,12 +94,17 @@ export class OrderService {
     }
 
     // 1. Cập nhật trạng thái item sang PREPARING
-    await this.orderRepository.updateOrderItemStatus(itemId, OrderStatus.PREPARING);
+    await this.orderRepository.updateOrderItemStatus(
+      itemId,
+      OrderStatus.PREPARING,
+    );
 
     // 2. Nếu đơn hàng đang ở trạng thái PENDING, chuyển sang PREPARING
     const order = await this.orderRepository.findById(item.order_id);
     if (order && order.status === 'PENDING') {
-      await this.orderRepository.update(item.order_id, { status: OrderStatus.PREPARING });
+      await this.orderRepository.update(item.order_id, {
+        status: OrderStatus.PREPARING,
+      });
     }
 
     return {
@@ -129,7 +134,9 @@ export class OrderService {
 
     if (unfinishedCount === 0) {
       // 3. Cập nhật orders.status sang READY
-      await this.orderRepository.update(item.order_id, { status: OrderStatus.READY });
+      await this.orderRepository.update(item.order_id, {
+        status: OrderStatus.READY,
+      });
     }
 
     // TODO: Gửi thông báo đến nhân viên phục vụ qua Socket/Notification

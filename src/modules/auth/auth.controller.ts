@@ -44,7 +44,9 @@ export class AuthController {
   @ApiBearerAuth()
   @Get('me')
   @ApiOperation({ summary: 'Get User Profile' })
-  async getProfile(@Request() req) {
+  async getProfile(
+    @Request() req: { user: { userId: string | number | bigint } },
+  ) {
     return this.authService.getProfile(BigInt(req.user.userId));
   }
 }

@@ -1,60 +1,41 @@
-version: '3.8'
-
 services:
-  # 1. Database: PostgreSQL
-  postgres:
-    image: postgres:15-alpine
-    container_name: order_restaurant_db
-    restart: always
-    environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: rootpassword
-      POSTGRES_DB: order_restaurant
-    ports:
-      - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
-    networks:
-      - restaurant_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d order_restaurant"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # 2. Backend: NestJS + Prisma
+  # Backend: NestJS + Prisma (connects to remote DB via DATABASE_URL in .env)
   backend:
-    build: ./backend
+    image: dton04/order-restaurant-backend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: order_restaurant_api
     restart: always
-    depends_on:
-      postgres:
-        condition: service_healthy 
+    env_file:
+      - .env
     environment:
-     DATABASE_URL="postgres://26a1d49bbc05cfb30dfb57b1c7b3e20b7ffee08f809a2e5fd8ea4cf10c76f8f8:sk_cFmIJUUifUVAORYFEHSQO@db.prisma.io:5432/postgres?uselibpqcompat=true&sslmode=require"
-      PORT: 8080
+      DATABASE_URL: ${DATABASE_URL}
+      PORT: ${PORT:-3000}
     ports:
-      - "8080:8080"
+      - "8080:3000"
     command: >
-      sh -c "npx prisma migrate deploy && npm run start:prod"
+      sh -c "npx prisma migrate deploy && node dist/main"
     networks:
       - restaurant_network
 
-  # 3. Frontend: React (Nginx)
+  # Frontend: React (Nginx)
   frontend:
-    build: ./frontend
+    image: dton04/order-restaurant-frontend:latest
+    build:
+      context: ../Frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
     container_name: order_restaurant_ui
     restart: always
     depends_on:
       - backend
     ports:
-      - "3000:80" 
+      - "3001:80" 
     networks:
       - restaurant_network
 
 networks:
   restaurant_network:
     driver: bridge
-
-volumes:
-  db_data:
