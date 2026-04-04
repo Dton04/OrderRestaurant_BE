@@ -5,10 +5,6 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 export class TableRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAreaById(id: bigint) {
-    return this.prisma.area.findUnique({ where: { id } });
-  }
-
   async findAll() {
     return this.prisma.table.findMany({ include: { area: true } });
   }
@@ -21,11 +17,11 @@ export class TableRepository {
   }
 
   async create(data: any) {
-    return this.prisma.table.create({ data, include: { area: true } });
+    return this.prisma.table.create({ data });
   }
 
   async update(id: bigint, data: any) {
-    return this.prisma.table.update({ where: { id }, data, include: { area: true } });
+    return this.prisma.table.update({ where: { id }, data });
   }
 
   async delete(id: bigint) {
