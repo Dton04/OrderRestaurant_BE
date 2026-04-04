@@ -122,6 +122,8 @@ model OrderItem {
   price_at_order Decimal @db.Decimal(19, 2)
   status         String  @db.VarChar(50)
   notes          String?
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @default(now()) @updatedAt // Thêm @default(now()) ở đây
   dish           Dish    @relation(fields: [dish_id], references: [id])
   order          Order   @relation(fields: [order_id], references: [id])
 

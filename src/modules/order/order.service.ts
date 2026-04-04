@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { OrderRepository } from './order.repository';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
@@ -36,6 +40,98 @@ export class OrderService {
       throw new NotFoundException('Order not found');
     }
     return orderInfo;
+  }
+
+  async getItemPreparationNotes(itemId: bigint) {
+    const item = await this.orderRepository.findOrderItemById(itemId);
+    if (!item) {
+      throw new NotFoundException('Order item not found');
+    }
+    return {
+      message: 'Lấy ghi chú thành công.',
+      data: item,
+    };
+  }
+
+  async getChefDailySummary() {
+    const today = new Date();
+    const data = await this.orderRepository.getChefDailySummary(today);
+    return {
+      message: 'Tải báo cáo chế biến thành công.',
+      data,
+    };
+  }
+
+  async getKitchenQueue() {
+    const queue = await this.orderRepository.getKitchenQueue();
+    const formattedQueue = queue.map((item) => ({
+      item_id: Number(item.id),
+      dish_name: item.dish.name,
+      quantity: item.quantity,
+      table_number: item.order.table?.table_number || 'N/A',
+      notes: item.notes,
+      status: item.status,
+      created_at: item.created_at,
+    }));
+
+    return {
+      message: 'Tải hàng đợi chế biến thành công.',
+      data: formattedQueue,
+    };
+  }
+
+  async startCooking(itemId: bigint) {
+    const item = await this.orderRepository.findOrderItemById(itemId);
+    if (!item) {
+      throw new NotFoundException('Order item not found');
+    }
+
+    if (item.status !== 'PENDING') {
+      throw new BadRequestException(
+        'Món ăn phải ở trạng thái chờ (PENDING) mới có thể bắt đầu chế biến.',
+      );
+    }
+
+    // 1. Cập nhật trạng thái item sang COOKING
+    await this.orderRepository.updateOrderItemStatus(itemId, 'COOKING');
+
+    // 2. Nếu đơn hàng đang ở trạng thái PENDING, chuyển sang PROCESSING
+    const order = await this.orderRepository.findById(item.order_id);
+    if (order && order.status === 'PENDING') {
+      await this.orderRepository.update(item.order_id, { status: 'PROCESSING' });
+    }
+
+    return {
+      message: 'Món ăn đã bắt đầu được chế biến.',
+    };
+  }
+
+  async finishKitchenItem(itemId: bigint) {
+    const item = await this.orderRepository.findOrderItemById(itemId);
+    if (!item) {
+      throw new NotFoundException('Order item not found');
+    }
+
+    if (item.status !== 'COOKING') {
+      throw new Error('Món ăn phải ở trạng thái đang chế biến (COOKING) mới có thể hoàn thành.');
+    }
+
+    // 1. Cập nhật trạng thái item sang DONE
+    await this.orderRepository.updateOrderItemStatus(itemId, 'DONE');
+
+    // 2. Kiểm tra nếu tất cả items trong đơn đã DONE
+    const unfinishedCount = await this.orderRepository.countUnfinishedItems(item.order_id);
+
+    if (unfinishedCount === 0) {
+      // 3. Cập nhật orders.status sang READY
+      await this.orderRepository.update(item.order_id, { status: 'READY' });
+    }
+
+    // TODO: Gửi thông báo đến nhân viên phục vụ qua Socket/Notification
+
+    return {
+      message: 'Món ăn đã hoàn thành, sẵn sàng phục vụ.',
+    };
   }
 
   async update(id: bigint, updateOrderDto: UpdateOrderDto) {
