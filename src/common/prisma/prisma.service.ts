@@ -10,7 +10,13 @@ export class PrismaService
 {
   constructor() {
     const connectionString = process.env.DATABASE_URL || '';
-    const pool = new Pool({ connectionString });
+    const ssl =
+      connectionString.includes('sslmode=require') ||
+      connectionString.includes('ssl=true') ||
+      connectionString.includes('db.prisma.io')
+        ? { rejectUnauthorized: false }
+        : undefined;
+    const pool = new Pool({ connectionString, ssl });
     const adapter = new PrismaPg(pool as any);
     super({ adapter });
   }

@@ -13,18 +13,47 @@ export class OrderService {
   constructor(private readonly orderRepository: OrderRepository) {}
 
   async create(createOrderDto: CreateOrderDto) {
+    const toBigInt = (value: unknown) => {
+      if (value === null || value === undefined) {
+        return undefined;
+      }
+      if (typeof value === 'bigint') {
+        return value;
+      }
+      if (typeof value === 'number') {
+        return BigInt(value);
+      }
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) {
+          return undefined;
+        }
+        return BigInt(trimmed);
+      }
+      return undefined;
+    };
+
     const { items, ...orderData } = createOrderDto;
 
     // Formatting data for Prisma nested write
     const createData = {
       ...orderData,
+      customer_id: toBigInt(orderData.customer_id),
+      staff_id: toBigInt(orderData.staff_id),
+      table_id: toBigInt(orderData.table_id),
       order_items: {
-        create: items.map((item) => ({
-          dish_id: item.dish_id,
-          quantity: item.quantity,
-          price_at_order: item.price_at_order,
-          status: OrderStatus.PENDING,
-        })),
+        create: items.map((item) => {
+          const dishId = toBigInt(item.dish_id);
+          if (dishId === undefined) {
+            throw new BadRequestException('Invalid dish_id');
+          }
+          return {
+            dish_id: dishId,
+            quantity: item.quantity,
+            price_at_order: item.price_at_order,
+            status: OrderStatus.PENDING,
+          };
+        }),
       },
     };
 
@@ -158,7 +187,32 @@ export class OrderService {
     await this.findOne(id);
     const { items, ...data } = updateOrderDto;
     void items;
-    return this.orderRepository.update(id, data);
+    const toBigInt = (value: unknown) => {
+      if (value === null || value === undefined) {
+        return undefined;
+      }
+      if (typeof value === 'bigint') {
+        return value;
+      }
+      if (typeof value === 'number') {
+        return BigInt(value);
+      }
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) {
+          return undefined;
+        }
+        return BigInt(trimmed);
+      }
+      return undefined;
+    };
+
+    return this.orderRepository.update(id, {
+      ...data,
+      customer_id: toBigInt(data.customer_id),
+      staff_id: toBigInt(data.staff_id),
+      table_id: toBigInt(data.table_id),
+    });
   }
 
   async remove(id: bigint) {
