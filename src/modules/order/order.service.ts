@@ -66,10 +66,18 @@ export class OrderService {
   async getKitchenQueue() {
     const queue = await this.orderRepository.getKitchenQueue();
     const formattedQueue = queue.map((item) => ({
-      item_id: Number(item.id),
+      item_id: item.id.toString(),
+      order_id: item.order_id.toString(),
       dish_name: item.dish.name,
       quantity: item.quantity,
+      price_at_order: item.price_at_order.toString(),
+      line_total: item.price_at_order.mul(item.quantity).toString(),
       table_number: item.order.table?.table_number || 'N/A',
+      order_total_amount: item.order.total_amount.toString(),
+      order_discount_amount: item.order.discount_amount.toString(),
+      order_final_amount: item.order.final_amount.toString(),
+      order_type: item.order.order_type,
+      table_id: item.order.table_id?.toString() ?? null,
       notes: item.notes,
       status: item.status,
       created_at: item.order.created_at,

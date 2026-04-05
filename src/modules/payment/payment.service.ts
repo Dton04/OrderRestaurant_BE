@@ -40,7 +40,10 @@ export class PaymentService {
       throw new NotFoundException('Order not found');
     }
 
-    if (order.status !== OrderStatus.READY && order.status !== OrderStatus.PREPARING) {
+    if (
+      order.status !== OrderStatus.READY &&
+      order.status !== OrderStatus.PREPARING
+    ) {
       throw new BadRequestException('Đơn hàng chưa sẵn sàng để thanh toán');
     }
 
@@ -79,7 +82,14 @@ export class PaymentService {
   async create(createPaymentDto: CreatePaymentDto) {
     const rawPayload = createPaymentDto as unknown as Record<string, unknown>;
     const rawOrderId = rawPayload.order_id ?? rawPayload.orderId;
-    const orderIdNumber = Number(rawOrderId);
+    const orderIdNumber =
+      typeof rawOrderId === 'bigint'
+        ? Number(rawOrderId)
+        : typeof rawOrderId === 'number'
+          ? rawOrderId
+          : typeof rawOrderId === 'string'
+            ? Number(rawOrderId)
+            : NaN;
 
     if (!Number.isInteger(orderIdNumber) || orderIdNumber <= 0) {
       throw new BadRequestException('order_id (or orderId) is invalid');
@@ -90,15 +100,23 @@ export class PaymentService {
       throw new BadRequestException('amount is invalid');
     }
 
-    const method = String(rawPayload.method ?? '').toUpperCase();
-    if (!method) {
+    const methodRaw = rawPayload.method;
+    if (typeof methodRaw !== 'string' || !methodRaw.trim()) {
       throw new BadRequestException('method is required');
     }
+    const method = methodRaw.toUpperCase();
 
-    const status = String(rawPayload.status ?? 'SUCCESS').toUpperCase();
-    const transactionId = rawPayload.transaction_id
-      ? String(rawPayload.transaction_id)
-      : undefined;
+    const statusRaw = rawPayload.status;
+    const status =
+      typeof statusRaw === 'string' && statusRaw.trim()
+        ? statusRaw.toUpperCase()
+        : 'SUCCESS';
+
+    const transactionIdRaw = rawPayload.transaction_id;
+    const transactionId =
+      typeof transactionIdRaw === 'string' && transactionIdRaw.trim()
+        ? transactionIdRaw
+        : undefined;
 
     try {
       return await this.paymentRepository.create({

@@ -7,7 +7,11 @@ export class TableRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll() {
-    return this.prisma.table.findMany({ include: { area: true } });
+    return this.prisma.table.findMany({
+      where: {
+        deleted_at: null,
+      },
+      include: { area: true } });
   }
 
   async findById(id: bigint) {

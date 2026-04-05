@@ -96,7 +96,13 @@ export class OrderRepository {
         },
         order: {
           select: {
+            id: true,
             created_at: true,
+            final_amount: true,
+            total_amount: true,
+            discount_amount: true,
+            order_type: true,
+            table_id: true,
             table: {
               select: {
                 table_number: true,

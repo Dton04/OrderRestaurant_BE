@@ -12,7 +12,8 @@ export class CategoryService {
   }
 
   async findAll() {
-    return this.categoryRepository.findAll();
+    return this.categoryRepository.findAll(
+    );
   }
 
   async findOne(id: bigint) {
