@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { Prisma } from '../../generated/prisma/client';
+import { OrderStatus, Prisma } from '../../generated/prisma/client';
 
 @Injectable()
 export class OrderRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll() {
+  findAll() {
     return this.prisma.order.findMany({
       include: { order_items: true, customer: true, table: true },
     });
   }
 
-  async findById(id: bigint) {
+  findById(id: bigint) {
     return this.prisma.order.findUnique({
       where: { id },
       include: { order_items: true, customer: true, table: true },
@@ -52,7 +52,7 @@ export class OrderRepository {
     const results = await this.prisma.orderItem.groupBy({
       by: ['dish_id'],
       where: {
-        status: 'DONE',
+        status: 'READY',
         order: {
           updated_at: {
             gte: startOfDay,
@@ -85,7 +85,7 @@ export class OrderRepository {
     return this.prisma.orderItem.findMany({
       where: {
         status: {
-          in: ['PENDING', 'COOKING'] as any,
+          in: ['PENDING', 'PREPARING'],
         },
       },
       include: {
@@ -95,7 +95,14 @@ export class OrderRepository {
           },
         },
         order: {
-          include: {
+          select: {
+            id: true,
+            created_at: true,
+            final_amount: true,
+            total_amount: true,
+            discount_amount: true,
+            order_type: true,
+            table_id: true,
             table: {
               select: {
                 table_number: true,
@@ -105,20 +112,22 @@ export class OrderRepository {
         },
       },
       orderBy: {
-        created_at: 'asc',
+        order: {
+          created_at: 'asc',
+        },
       },
     });
   }
 
-  async create(data: Prisma.OrderUncheckedCreateInput) {
+  create(data: Prisma.OrderUncheckedCreateInput) {
     return this.prisma.order.create({ data, include: { order_items: true } });
   }
 
-  async update(id: bigint, data: Prisma.OrderUncheckedUpdateInput) {
+  update(id: bigint, data: Prisma.OrderUncheckedUpdateInput) {
     return this.prisma.order.update({ where: { id }, data });
   }
 
-  async updateOrderItemStatus(id: bigint, status: string) {
+  async updateOrderItemStatus(id: bigint, status: OrderStatus) {
     return this.prisma.orderItem.update({
       where: { id },
       data: { status },
@@ -129,12 +138,12 @@ export class OrderRepository {
     return this.prisma.orderItem.count({
       where: {
         order_id: orderId,
-        status: { not: 'DONE' },
+        status: { not: 'READY' },
       },
     });
   }
 
-  async delete(id: bigint) {
+  delete(id: bigint) {
     return this.prisma.order.update({
       where: { id },
       data: { deleted_at: new Date() },

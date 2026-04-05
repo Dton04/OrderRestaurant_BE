@@ -7,7 +7,11 @@ export class CategoryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll() {
-    return this.prisma.category.findMany();
+    return this.prisma.category.findMany({
+      where: {
+        deleted_at: null,
+      },
+    });
   }
 
   async findById(id: bigint) {

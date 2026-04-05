@@ -5,6 +5,7 @@ import { UserModule } from '../user/user.module';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { JwtStrategy } from './jwt.strategy';
+import type { StringValue } from 'ms';
 
 @Module({
   imports: [
@@ -14,7 +15,11 @@ import { JwtStrategy } from './jwt.strategy';
       secret:
         process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || 'secretKey',
       signOptions: {
-        expiresIn: (process.env.JWT_ACCESS_EXPIRES_IN ?? '1d') as any,
+        expiresIn:
+          process.env.JWT_ACCESS_EXPIRES_IN &&
+          /^\d+$/.test(process.env.JWT_ACCESS_EXPIRES_IN)
+            ? Number(process.env.JWT_ACCESS_EXPIRES_IN)
+            : ((process.env.JWT_ACCESS_EXPIRES_IN ?? '1d') as StringValue),
       },
     }),
   ],

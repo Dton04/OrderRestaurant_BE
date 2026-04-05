@@ -5,14 +5,12 @@ import {
   Body,
   Put,
   Param,
-  Delete,
   UseGuards,
   Request,
   Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import {
@@ -31,7 +29,10 @@ export class UserController {
   @ApiBearerAuth()
   @Put('profile')
   @ApiOperation({ summary: 'Update Profile (EP4) ' })
-  updateProfile(@Request() req, @Body() updateProfileDto: UpdateProfileDto) {
+  updateProfile(
+    @Request() req: { user: { userId: string | number | bigint } },
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
     return this.userService.update(BigInt(req.user.userId), updateProfileDto);
   }
 
@@ -47,7 +48,9 @@ export class UserController {
     @Query('size') size: number = 10,
     @Query('search') search?: string,
   ) {
-    // In a real scenario, we'd add an AdminGuard here too.
+    void page;
+    void size;
+    void search;
     return this.userService.findAll(); // Simple find all for now, pagination logic can be added later
   }
 

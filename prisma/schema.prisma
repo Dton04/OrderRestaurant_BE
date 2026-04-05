@@ -99,12 +99,13 @@ model Order {
   total_amount    Decimal     @db.Decimal(19, 2)
   discount_amount Decimal     @default(0) @db.Decimal(19, 2)
   final_amount    Decimal     @db.Decimal(19, 2)
-  status          String      @db.VarChar(50)
   notes           String?
   voucher_id      BigInt?
   created_at      DateTime    @default(now())
   updated_at      DateTime    @updatedAt
   deleted_at      DateTime?
+  order_type      OrderType   @default(NORMAL)
+  status          OrderStatus @default(PENDING)
   order_items     OrderItem[]
   customer        User?       @relation(fields: [customer_id], references: [id])
   table           Table?      @relation(fields: [table_id], references: [id])
@@ -115,17 +116,15 @@ model Order {
 }
 
 model OrderItem {
-  id             BigInt  @id @default(autoincrement())
+  id             BigInt      @id @default(autoincrement())
   order_id       BigInt
   dish_id        BigInt
   quantity       Int
-  price_at_order Decimal @db.Decimal(19, 2)
-  status         String  @db.VarChar(50)
+  price_at_order Decimal     @db.Decimal(19, 2)
   notes          String?
-  created_at     DateTime     @default(now())
-  updated_at     DateTime     @default(now()) @updatedAt // Thêm @default(now()) ở đây
-  dish           Dish    @relation(fields: [dish_id], references: [id])
-  order          Order   @relation(fields: [order_id], references: [id])
+  status         OrderStatus @default(PENDING)
+  dish           Dish        @relation(fields: [dish_id], references: [id])
+  order          Order       @relation(fields: [order_id], references: [id])
 
   @@map("order_items")
 }
@@ -168,4 +167,18 @@ model LoyaltyPoint {
   user           User     @relation(fields: [user_id], references: [id])
 
   @@map("loyalty_points")
+}
+
+enum OrderStatus {
+  PENDING
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum OrderType {
+  NORMAL
+  VIP
+  TAKE_AWAY
 }
