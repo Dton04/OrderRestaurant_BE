@@ -15,7 +15,7 @@ services:
     ports:
       - "8080:3000"
     command: >
-      sh -c "npx prisma migrate deploy && node dist/main"
+      sh -c "npx prisma migrate deploy && node dist/src/main"
     networks:
       - restaurant_network
 
