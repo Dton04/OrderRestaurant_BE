@@ -246,4 +246,27 @@ export class OrderRepository {
       data: { deleted_at: new Date() },
     });
   }
+
+  async cancelAllOrderItems(orderId: bigint) {
+    return this.prisma.orderItem.updateMany({
+      where: { order_id: orderId, status: { not: 'CANCELLED' } },
+      data: { status: 'CANCELLED' },
+    });
+  }
+
+  async updateTableStatus(tableId: bigint, status: string) {
+    return this.prisma.table.update({
+      where: { id: tableId },
+      data: { status },
+    });
+  }
+
+  async countActiveItems(orderId: bigint) {
+    return this.prisma.orderItem.count({
+      where: {
+        order_id: orderId,
+        status: { not: 'CANCELLED' },
+      },
+    });
+  }
 }

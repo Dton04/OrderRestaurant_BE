@@ -6,11 +6,16 @@ import {
 import { OrderRepository } from './order.repository';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { CancelOrderDto } from './dto/cancel-order.dto';
 import { OrderStatus } from '../../generated/prisma/client';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class OrderService {
-  constructor(private readonly orderRepository: OrderRepository) {}
+  constructor(
+    private readonly orderRepository: OrderRepository,
+    private readonly eventsGateway: EventsGateway,
+  ) {}
 
   async create(createOrderDto: CreateOrderDto) {
     const toBigInt = (value: unknown) => {
@@ -85,7 +90,9 @@ export class OrderService {
     };
 
     try {
-      return await this.orderRepository.create(createData);
+      const newOrder = await this.orderRepository.create(createData);
+      this.eventsGateway.notifyNewOrder();
+      return newOrder;
     } catch (error: any) {
       console.error("Order creation failed: ", error);
       throw new BadRequestException("Không thể tạo đơn hàng. Vui lòng kiểm tra lại thông tin gửi lên (table_id, constraints...): " + error.message);
@@ -206,7 +213,12 @@ export class OrderService {
       await this.orderRepository.update(item.order_id, {
         status: OrderStatus.PREPARING,
       });
+    } else if (!order) {
+      // Fetch order if we didn't fetch it above
+      // order is actually fetched above: const order = await this.orderRepository.findById(item.order_id);
     }
+
+    this.eventsGateway.notifyItemStatusChanged(order?.customer_id);
 
     return {
       message: 'Món ăn đã bắt đầu được chế biến.',
@@ -240,7 +252,8 @@ export class OrderService {
       });
     }
 
-    // TODO: Gửi thông báo đến nhân viên phục vụ qua Socket/Notification
+    const order = await this.orderRepository.findById(item.order_id);
+    this.eventsGateway.notifyItemStatusChanged(order?.customer_id);
 
     return {
       message: 'Món ăn đã hoàn thành, sẵn sàng phục vụ.',
@@ -261,6 +274,9 @@ export class OrderService {
 
     // Cập nhật trạng thái item sang COMPLETED
     await this.orderRepository.updateOrderItemStatus(itemId, OrderStatus.COMPLETED);
+
+    const order = await this.orderRepository.findById(item.order_id);
+    this.eventsGateway.notifyItemStatusChanged(order?.customer_id);
 
     return {
       message: 'Món ăn đã được phục vụ.',
@@ -302,5 +318,72 @@ export class OrderService {
   async remove(id: bigint) {
     await this.findOne(id);
     return this.orderRepository.delete(id);
+  }
+
+  async cancelOrder(id: bigint, cancelDto: CancelOrderDto) {
+    const order = await this.findOne(id);
+
+    // Validate: At least one item should be pending, and no item should be in COOKING/DONE status
+    const canCancel = order.order_items.every((item) => item.status === 'PENDING' || item.status === 'CANCELLED');
+
+    if (!canCancel) {
+      throw new BadRequestException(
+        'Đơn hàng đã bắt đầu được chế biến hoặc hoàn tất, không thể tự ý hủy. Vui lòng liên hệ nhân viên.',
+      );
+    }
+
+    // Update all items to CANCELLED
+    await this.orderRepository.cancelAllOrderItems(id);
+
+    // Update order status to CANCELLED
+    await this.orderRepository.update(id, { status: 'CANCELLED' });
+
+    // Release table
+    if (order.table_id) {
+      await this.orderRepository.updateTableStatus(order.table_id, 'FREE');
+    }
+
+    // Notify via socket
+    this.eventsGateway.notifyNewOrder(); // Refresh Chef/Staff views
+    this.eventsGateway.notifyItemStatusChanged(order.customer_id);
+
+    return {
+      message: 'Đã hủy đơn hàng thành công.',
+    };
+  }
+
+  async cancelOrderItem(orderId: bigint, itemId: bigint, cancelDto: CancelOrderDto) {
+    const item = await this.orderRepository.findOrderItemById(itemId);
+    if (!item || item.order_id !== orderId) {
+      throw new NotFoundException('Món ăn không thuộc đơn hàng này.');
+    }
+
+    if (item.status !== 'PENDING') {
+      throw new BadRequestException(
+        'Món ăn đã bắt đầu được chế biến hoặc hoàn tất, không thể hủy.',
+      );
+    }
+
+    // Update item status to CANCELLED
+    await this.orderRepository.updateOrderItemStatus(itemId, 'CANCELLED' as any);
+
+    // Check if there are any active items left in the order
+    const activeItemsCount = await this.orderRepository.countActiveItems(orderId);
+
+    if (activeItemsCount === 0) {
+      // Entire order is cancelled
+      await this.orderRepository.update(orderId, { status: 'CANCELLED' });
+      if (item.order.table_id) {
+        await this.orderRepository.updateTableStatus(item.order.table_id, 'FREE');
+      }
+    }
+
+    // Notify via socket
+    this.eventsGateway.notifyNewOrder();
+    this.eventsGateway.notifyItemStatusChanged(item.order.customer_id);
+
+    return {
+      message: 'Đã hủy món ăn trong đơn thành công.',
+    };
   }
 }
