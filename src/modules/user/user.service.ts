@@ -4,7 +4,6 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { UserRepository } from './user.repository';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 
@@ -12,7 +11,15 @@ import * as bcrypt from 'bcrypt';
 export class UserService {
   constructor(private readonly userRepository: UserRepository) {}
 
-  async create(createUserDto: any, roleId: bigint) {
+  async create(
+    createUserDto: {
+      full_name: string;
+      email: string;
+      password: string;
+      phone?: string;
+    },
+    roleId: bigint,
+  ) {
     const existingEmail = await this.userRepository.findByEmail(
       createUserDto.email,
     );

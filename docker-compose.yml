@@ -1,17 +1,41 @@
-version: '3.8'
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: order_restaurant_db
+  # Backend: NestJS + Prisma (connects to remote DB via DATABASE_URL in .env)
+  backend:
+    image: dton04/order-restaurant-backend:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: order_restaurant_api
     restart: always
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: root
-      POSTGRES_PASSWORD: rootpassword
-      POSTGRES_DB: order_restaurant
+      DATABASE_URL: ${DATABASE_URL}
+      PORT: ${PORT:-3000}
     ports:
-      - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
+      - "8080:3000"
+    command: >
+      sh -c "npx prisma migrate deploy && node dist/src/main"
+    networks:
+      - restaurant_network
 
-volumes:
-  db_data:
+  # Frontend: React (Nginx)
+  frontend:
+    image: dton04/order-restaurant-frontend:latest
+    build:
+      context: ../Frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+    container_name: order_restaurant_ui
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3001:80" 
+    networks:
+      - restaurant_network
+
+networks:
+  restaurant_network:
+    driver: bridge

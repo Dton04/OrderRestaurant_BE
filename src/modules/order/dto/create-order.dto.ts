@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { OrderStatus } from '../../../generated/prisma/client';
 
 class CreateOrderItemDto {
   @ApiProperty({ example: 1, description: 'Dish ID' })
@@ -30,8 +31,12 @@ export class CreateOrderDto {
   @ApiProperty({ example: 25.98, description: 'Final amount' })
   final_amount: number;
 
-  @ApiProperty({ example: 'PENDING', description: 'Order Status' })
-  status: string;
+  @ApiProperty({
+    example: 'PENDING',
+    description: 'Order Status',
+    required: false,
+  })
+  status?: OrderStatus;
 
   @ApiProperty({
     type: [CreateOrderItemDto],

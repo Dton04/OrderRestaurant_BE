@@ -1,13 +1,14 @@
-name: NestJS Prisma CI
+name: CI - Backend (NestJS + Prisma) + Railway Auto Deploy
 
 on:
   push:
-    branches: [ main, develop ] # Chạy khi push vào main hoặc develop
+    branches: [ main, develop ] # CI khi push
   pull_request:
-    branches: [ main, develop ] # Chạy khi ai đó tạo Pull Request vào 2 nhánh này
+    branches: [ main, develop ] # CI khi tạo PR
+  workflow_dispatch:
 
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,7 +22,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Generate Prisma Client
         run: npx prisma generate
@@ -30,3 +31,8 @@ jobs:
 
       - name: Run Build
         run: npm run build
+
+      - name: Run Test
+        run: npm test -- --passWithNoTests
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

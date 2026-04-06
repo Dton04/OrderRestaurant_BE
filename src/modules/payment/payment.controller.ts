@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { FinalizePaymentDto } from './dto/finalize-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -19,6 +20,12 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 @ApiBearerAuth()
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
+
+  @Post('finalize')
+  @ApiOperation({ summary: 'Finalize Payment (EP28)' })
+  finalize(@Body() finalizePaymentDto: FinalizePaymentDto) {
+    return this.paymentService.finalize(finalizePaymentDto);
+  }
 
   @Post()
   @ApiOperation({ summary: 'Process a new payment' })

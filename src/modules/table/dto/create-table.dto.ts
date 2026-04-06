@@ -14,5 +14,5 @@ export class CreateTableDto {
   status: string;
 
   @ApiProperty({ example: 1, description: 'Area ID' })
-  area_id: number;
+  area_id: bigint;
 }

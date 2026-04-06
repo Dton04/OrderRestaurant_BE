@@ -18,4 +18,22 @@ export class UpdateProfileDto {
     message: 'Invalid Vietnamese phone number',
   })
   phone?: string;
+
+  @ApiProperty({
+    example: 'Số 766 đường Võ Văn Kiệt, Phường Chợ Quán, Quận 5, TP. HCM',
+    description: 'Address',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @ApiProperty({
+    example: '(GMT+07:00) Bangkok, Hanoi, Jakarta',
+    description: 'Timezone',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  timezone?: string;
 }

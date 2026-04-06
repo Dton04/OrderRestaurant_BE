@@ -11,6 +11,7 @@ import { AreaModule } from './modules/area/area.module';
 import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { EventsModule } from './modules/events/events.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
     AreaModule,
     OrderModule,
     PaymentModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

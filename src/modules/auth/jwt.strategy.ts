@@ -13,15 +13,29 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
-    const user = await this.userService.findOne(BigInt(payload.sub));
+  async validate(payload: unknown) {
+    if (!payload || typeof payload !== 'object') {
+      throw new UnauthorizedException();
+    }
+
+    const payloadRecord = payload as Record<string, unknown>;
+    const sub = payloadRecord['sub'];
+    if (
+      typeof sub !== 'string' &&
+      typeof sub !== 'number' &&
+      typeof sub !== 'bigint'
+    ) {
+      throw new UnauthorizedException();
+    }
+
+    const user = await this.userService.findOne(BigInt(sub));
     if (!user) {
       throw new UnauthorizedException();
     }
     return {
-      userId: payload.sub,
-      email: payload.email,
-      role_id: payload.role_id,
+      userId: sub,
+      email: payloadRecord['email'],
+      role_id: payloadRecord['role_id'],
     };
   }
 }
