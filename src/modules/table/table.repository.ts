@@ -11,7 +11,8 @@ export class TableRepository {
       where: {
         deleted_at: null,
       },
-      include: { area: true } });
+      include: { area: true },
+    });
   }
 
   async findById(id: bigint) {

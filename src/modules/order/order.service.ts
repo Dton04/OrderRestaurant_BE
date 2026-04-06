@@ -34,34 +34,80 @@ export class OrderService {
     };
 
     const { items, ...orderData } = createOrderDto;
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new BadRequestException('Order items are required');
+    }
+
+    const tableId = toBigInt(orderData.table_id);
+    if (tableId !== undefined) {
+      const exists = await this.orderRepository.tableExists(tableId);
+      if (!exists) {
+        throw new BadRequestException('Invalid table_id');
+      }
+    }
+
+    const dishIds = items
+      .map((item) => toBigInt(item.dish_id))
+      .filter((id): id is bigint => id !== undefined);
+
+    if (dishIds.length !== items.length) {
+      throw new BadRequestException('Invalid dish_id');
+    }
+
+    const existingDishIds =
+      await this.orderRepository.findExistingDishIds(dishIds);
+    const missingDishIds = dishIds.filter((id) => !existingDishIds.has(id));
+    if (missingDishIds.length > 0) {
+      throw new BadRequestException(
+        `Dish not found: ${missingDishIds.map((id) => id.toString()).join(', ')}`,
+      );
+    }
 
     // Formatting data for Prisma nested write
     const createData = {
       ...orderData,
       customer_id: toBigInt(orderData.customer_id),
       staff_id: toBigInt(orderData.staff_id),
-      table_id: toBigInt(orderData.table_id),
+      table_id: tableId,
+      voucher_id: toBigInt((orderData as unknown as { voucher_id?: unknown }).voucher_id),
       order_items: {
         create: items.map((item) => {
-          const dishId = toBigInt(item.dish_id);
-          if (dishId === undefined) {
-            throw new BadRequestException('Invalid dish_id');
-          }
+          const dishId = toBigInt(item.dish_id) as bigint;
           return {
             dish_id: dishId,
             quantity: item.quantity,
             price_at_order: item.price_at_order,
+            notes: (item as any).notes || null,
             status: OrderStatus.PENDING,
           };
         }),
       },
     };
 
-    return this.orderRepository.create(createData);
+    try {
+      return await this.orderRepository.create(createData);
+    } catch (error: any) {
+      console.error("Order creation failed: ", error);
+      throw new BadRequestException("Không thể tạo đơn hàng. Vui lòng kiểm tra lại thông tin gửi lên (table_id, constraints...): " + error.message);
+    }
   }
 
   async findAll() {
     return this.orderRepository.findAll();
+  }
+
+  async findMyOrders(customerId: bigint, status?: string) {
+    if (!customerId) {
+      throw new BadRequestException('Customer ID is required');
+    }
+    const orders = await this.orderRepository.findCustomerOrders(
+      customerId,
+      status,
+    );
+    return {
+      message: 'Tải lịch sử đơn hàng thành công.',
+      data: orders,
+    };
   }
 
   async findOne(id: bigint) {
@@ -114,6 +160,24 @@ export class OrderService {
 
     return {
       message: 'Tải hàng đợi chế biến thành công.',
+      data: formattedQueue,
+    };
+  }
+
+  async getStaffKitchenPulse() {
+    const queue = await this.orderRepository.getStaffKitchenPulse();
+    const formattedQueue = queue.map((item) => ({
+      item_id: item.id.toString(),
+      order_id: item.order_id.toString(),
+      dish_name: item.dish.name,
+      quantity: item.quantity,
+      table_number: item.order.table?.table_number || 'N/A',
+      notes: item.notes,
+      status: item.status,
+    }));
+
+    return {
+      message: 'Tải trạng thái món ăn bếp thành công.',
       data: formattedQueue,
     };
   }
@@ -180,6 +244,26 @@ export class OrderService {
 
     return {
       message: 'Món ăn đã hoàn thành, sẵn sàng phục vụ.',
+    };
+  }
+
+  async serveItem(itemId: bigint) {
+    const item = await this.orderRepository.findOrderItemById(itemId);
+    if (!item) {
+      throw new NotFoundException('Order item not found');
+    }
+
+    if (item.status !== 'READY') {
+      throw new BadRequestException(
+        'Món ăn phải ở trạng thái đã sẵn sàng (READY) mới có thể phục vụ.',
+      );
+    }
+
+    // Cập nhật trạng thái item sang COMPLETED
+    await this.orderRepository.updateOrderItemStatus(itemId, OrderStatus.COMPLETED);
+
+    return {
+      message: 'Món ăn đã được phục vụ.',
     };
   }
 
