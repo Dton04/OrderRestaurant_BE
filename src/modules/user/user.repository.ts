@@ -8,9 +8,6 @@ export class UserRepository {
 
   async findAll() {
     return this.prisma.user.findMany({
-      where: {
-        deleted_at: null,
-      },
       include: { role: true },
     });
   }
@@ -45,10 +42,21 @@ export class UserRepository {
     return this.prisma.user.update({ where: { id }, data });
   }
 
+  async findAllRoles() {
+    return this.prisma.role.findMany();
+  }
+
   async delete(id: bigint) {
     return this.prisma.user.update({
       where: { id },
       data: { deleted_at: new Date() },
+    });
+  }
+
+  async restore(id: bigint) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { deleted_at: null },
     });
   }
 }

@@ -43,13 +43,13 @@ export class TableService {
   async updateStatus(id: bigint, dto: UpdateTableStatusDto) {
     const table = await this.findOne(id);
 
-    // Accidental protection: If status is being set to FREE/CLEANING/RESERVED,
-    // ensure no active orders exist.
-    if (dto.status !== 'OCCUPIED') {
+    // Accidental protection: If status is being set to FREE or RESERVED,
+    // ensure no non-deleted active orders exist.
+    if (dto.status === 'FREE' || dto.status === 'RESERVED') {
       const hasActive = await this.orderRepository.hasActiveOrder(id);
       if (hasActive) {
         throw new BadRequestException(
-          `Bàn này đang có đơn hàng chưa hoàn tất. Không thể chuyển sang trạng thái ${dto.status}.`,
+          `Bàn này đang có đơn hàng chưa hoàn tất. Vui lòng thanh toán hoặc hủy đơn trước khi giải phóng bàn.`,
         );
       }
     }

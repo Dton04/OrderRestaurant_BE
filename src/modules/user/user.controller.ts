@@ -5,6 +5,7 @@ import {
   Body,
   Put,
   Param,
+  Delete,
   UseGuards,
   Request,
   Query,
@@ -64,9 +65,33 @@ export class UserController {
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Get('roles')
+  @ApiOperation({ summary: 'Admin Get All Roles' })
+  findAllRoles() {
+    return this.userService.findAllRoles();
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Put(':id/role')
+  @ApiOperation({ summary: 'Admin Update User Role' })
+  updateRole(@Param('id') id: string, @Body('role_id') roleId: string) {
+    return this.userService.updateRole(BigInt(id), BigInt(roleId));
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Put(':id/status')
   @ApiOperation({ summary: 'Admin Toggle User Status (EP7)' })
   toggleStatus(@Param('id') id: string) {
+    return this.userService.toggleStatus(BigInt(id));
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Delete(':id')
+  @ApiOperation({ summary: 'Admin Soft Delete User' })
+  remove(@Param('id') id: string) {
     return this.userService.remove(BigInt(id));
   }
 

@@ -15,7 +15,7 @@ export class OrderService {
   constructor(
     private readonly orderRepository: OrderRepository,
     private readonly eventsGateway: EventsGateway,
-  ) {}
+  ) { }
 
   async create(createOrderDto: CreateOrderDto) {
     const toBigInt = (value: unknown) => {
@@ -150,10 +150,8 @@ export class OrderService {
       throw new NotFoundException('Order not found');
     }
 
-    // Filter items that are NOT CANCELLED
     const activeItems = order.order_items.filter((item) => item.status !== 'CANCELLED');
 
-    // Calculate subtotal from active items (Snapshot price)
     const subtotal = activeItems.reduce((sum, item) => {
       return sum + Number(item.price_at_order) * item.quantity;
     }, 0);

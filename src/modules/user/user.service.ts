@@ -75,6 +75,23 @@ export class UserService {
     return this.userRepository.update(id, updateUserDto);
   }
 
+  async findAllRoles() {
+    return this.userRepository.findAllRoles();
+  }
+
+  async updateRole(id: bigint, roleId: bigint) {
+    await this.findOne(id);
+    return this.userRepository.update(id, { role_id: roleId });
+  }
+
+  async toggleStatus(id: bigint) {
+    const user = await this.findOne(id);
+    if (user.deleted_at) {
+      return this.userRepository.restore(id);
+    }
+    return this.userRepository.delete(id);
+  }
+
   async remove(id: bigint) {
     await this.findOne(id);
     return this.userRepository.delete(id);

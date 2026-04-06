@@ -4,10 +4,10 @@ import { Prisma } from '../../generated/prisma/client';
 
 @Injectable()
 export class DishRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async findAll() {
-    return this.prisma.dish.findMany({ include: { category: true } });
+    return this.prisma.dish.findMany({ where: { deleted_at: null }, include: { category: true } });
   }
 
   async findById(id: bigint) {
