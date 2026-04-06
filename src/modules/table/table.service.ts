@@ -1,11 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
 import { TableRepository } from './table.repository';
 import { CreateTableDto } from './dto/create-table.dto';
 import { UpdateTableDto } from './dto/update-table.dto';
+import { UpdateTableStatusDto } from './dto/update-table-status.dto';
+import { OrderRepository } from '../order/order.repository';
+import { EventsGateway } from '../events/events.gateway';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class TableService {
-  constructor(private readonly tableRepository: TableRepository) {}
+  constructor(
+    private readonly tableRepository: TableRepository,
+    private readonly orderRepository: OrderRepository,
+    private readonly eventsGateway: EventsGateway,
+  ) {}
 
   async create(createTableDto: CreateTableDto) {
     return this.tableRepository.create(createTableDto);
@@ -31,5 +38,30 @@ export class TableService {
   async remove(id: bigint) {
     await this.findOne(id);
     return this.tableRepository.delete(id);
+  }
+
+  async updateStatus(id: bigint, dto: UpdateTableStatusDto) {
+    const table = await this.findOne(id);
+
+    // Accidental protection: If status is being set to FREE/CLEANING/RESERVED,
+    // ensure no active orders exist.
+    if (dto.status !== 'OCCUPIED') {
+      const hasActive = await this.orderRepository.hasActiveOrder(id);
+      if (hasActive) {
+        throw new BadRequestException(
+          `Bàn này đang có đơn hàng chưa hoàn tất. Không thể chuyển sang trạng thái ${dto.status}.`,
+        );
+      }
+    }
+
+    const updated = await this.tableRepository.update(id, { status: dto.status });
+    
+    // Real-time notification
+    this.eventsGateway.notifyTableStatusChanged();
+    
+    return {
+      message: 'Cập nhật trạng thái bàn thành công.',
+      data: updated,
+    };
   }
 }

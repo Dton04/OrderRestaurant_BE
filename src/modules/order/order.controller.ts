@@ -13,6 +13,7 @@ import {
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
+import { CancelOrderDto } from './dto/cancel-order.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
@@ -63,12 +64,28 @@ export class OrderController {
     return this.orderService.getItemPreparationNotes(BigInt(itemId));
   }
 
+  @Get(':id/checkout-bill')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Pre-checkout Bill (Staff/Admin)' })
+  getCheckoutBill(@Param('id') id: string) {
+    return this.orderService.getCheckoutBill(BigInt(id));
+  }
+
   @Get('chef/daily-summary')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Chef Daily Summary (Chef/Admin)' })
   getChefDailySummary() {
     return this.orderService.getChefDailySummary();
+  }
+
+  @Get('table/:table_id/active')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Find Active Order by Table (Staff/Admin)' })
+  findActiveOrderByTableId(@Param('table_id') tableId: string) {
+    return this.orderService.findActiveOrderByTableId(BigInt(tableId));
   }
 
   @Get('kitchen/queue')
@@ -125,5 +142,25 @@ export class OrderController {
   @ApiOperation({ summary: 'Cancel/Delete an order (Staff)' })
   remove(@Param('id') id: string) {
     return this.orderService.remove(BigInt(id));
+  }
+
+  @Patch(':id/cancel')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cancel entire order (Customer/Staff/Admin)' })
+  cancel(@Param('id') id: string, @Body() cancelDto: CancelOrderDto) {
+    return this.orderService.cancelOrder(BigInt(id), cancelDto);
+  }
+
+  @Patch(':id/items/:item_id/cancel')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cancel a specific order item (Customer/Staff/Admin)' })
+  cancelItem(
+    @Param('id') id: string,
+    @Param('item_id') itemId: string,
+    @Body() cancelDto: CancelOrderDto,
+  ) {
+    return this.orderService.cancelOrderItem(BigInt(id), BigInt(itemId), cancelDto);
   }
 }

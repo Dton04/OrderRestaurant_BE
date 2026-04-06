@@ -246,4 +246,66 @@ export class OrderRepository {
       data: { deleted_at: new Date() },
     });
   }
+
+  async cancelAllOrderItems(orderId: bigint) {
+    return this.prisma.orderItem.updateMany({
+      where: { order_id: orderId, status: { not: 'CANCELLED' } },
+      data: { status: 'CANCELLED' },
+    });
+  }
+
+  async updateTableStatus(tableId: bigint, status: string) {
+    return this.prisma.table.update({
+      where: { id: tableId },
+      data: { status },
+    });
+  }
+
+  async countActiveItems(orderId: bigint) {
+    return this.prisma.orderItem.count({
+      where: {
+        order_id: orderId,
+        status: { not: 'CANCELLED' },
+      },
+    });
+  }
+
+  async hasActiveOrder(tableId: bigint) {
+    const activeOrder = await this.prisma.order.findFirst({
+      where: {
+        table_id: tableId,
+        status: {
+          notIn: ['COMPLETED', 'CANCELLED'],
+        },
+      },
+    });
+    return Boolean(activeOrder);
+  }
+
+  async findActiveOrderByTableId(tableId: bigint) {
+    return this.prisma.order.findFirst({
+      where: {
+        table_id: tableId,
+        status: {
+          notIn: ['COMPLETED', 'CANCELLED'],
+        },
+      },
+      include: {
+        order_items: {
+          include: {
+            dish: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                image_url: true,
+              },
+            },
+          },
+        },
+        table: true,
+      },
+      orderBy: { created_at: 'desc' },
+    });
+  }
 }

@@ -4,10 +4,15 @@ import { Prisma } from '../../generated/prisma/client';
 
 @Injectable()
 export class UserRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async findAll() {
-    return this.prisma.user.findMany();
+    return this.prisma.user.findMany({
+      where: {
+        deleted_at: null,
+      },
+      include: { role: true },
+    });
   }
 
   async findById(id: bigint) {
