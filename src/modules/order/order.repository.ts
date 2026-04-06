@@ -269,4 +269,16 @@ export class OrderRepository {
       },
     });
   }
+
+  async hasActiveOrder(tableId: bigint) {
+    const activeOrder = await this.prisma.order.findFirst({
+      where: {
+        table_id: tableId,
+        status: {
+          notIn: ['COMPLETED', 'CANCELLED'],
+        },
+      },
+    });
+    return Boolean(activeOrder);
+  }
 }

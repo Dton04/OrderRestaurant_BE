@@ -11,6 +11,7 @@ import {
 import { TableService } from './table.service';
 import { CreateTableDto } from './dto/create-table.dto';
 import { UpdateTableDto } from './dto/update-table.dto';
+import { UpdateTableStatusDto } from './dto/update-table-status.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
@@ -53,5 +54,16 @@ export class TableController {
   @ApiOperation({ summary: 'Soft delete a table (Admin)' })
   remove(@Param('id') id: string) {
     return this.tableService.remove(BigInt(id));
+  }
+
+  @Patch(':id/status')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Manual Update Table Status (Staff/Admin)' })
+  updateStatus(
+    @Param('id') id: string,
+    @Body() updateTableStatusDto: UpdateTableStatusDto,
+  ) {
+    return this.tableService.updateStatus(BigInt(id), updateTableStatusDto);
   }
 }

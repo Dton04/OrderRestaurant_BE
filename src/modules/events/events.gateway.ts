@@ -61,4 +61,9 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.to(`room_customer_${customerId.toString()}`).emit('item_status_changed');
     }
   }
+
+  notifyTableStatusChanged() {
+    this.server.to('room_staff').emit('refresh_tables');
+    this.server.to('room_chef').emit('refresh_tables'); // Chef might also care about table counts
+  }
 }
