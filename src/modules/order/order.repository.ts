@@ -277,6 +277,7 @@ export class OrderRepository {
         status: {
           notIn: ['COMPLETED', 'CANCELLED'],
         },
+        deleted_at: null,
       },
     });
     return Boolean(activeOrder);
@@ -289,6 +290,7 @@ export class OrderRepository {
         status: {
           notIn: ['COMPLETED', 'CANCELLED'],
         },
+        deleted_at: null,
       },
       include: {
         order_items: {
