@@ -6,6 +6,22 @@ import { OrderStatus, Prisma } from '../../generated/prisma/client';
 export class OrderRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async findExistingDishIds(ids: bigint[]) {
+    const dishes = await this.prisma.dish.findMany({
+      where: { id: { in: ids }, deleted_at: null },
+      select: { id: true },
+    });
+    return new Set(dishes.map((d) => d.id));
+  }
+
+  async tableExists(id: bigint) {
+    const table = await this.prisma.table.findFirst({
+      where: { id, deleted_at: null },
+      select: { id: true },
+    });
+    return Boolean(table);
+  }
+
   findAll() {
     return this.prisma.order.findMany({
       include: { order_items: true, customer: true, table: true },
@@ -15,7 +31,50 @@ export class OrderRepository {
   findById(id: bigint) {
     return this.prisma.order.findUnique({
       where: { id },
-      include: { order_items: true, customer: true, table: true },
+      include: {
+        order_items: {
+          include: {
+            dish: {
+              select: {
+                name: true,
+                image_url: true,
+                price: true,
+              },
+            },
+          },
+        },
+        customer: {
+          select: {
+            full_name: true,
+            email: true,
+            phone: true,
+          },
+        },
+        table: true,
+      },
+    });
+  }
+
+  findCustomerOrders(customerId: bigint, status?: string) {
+    const where: any = { customer_id: customerId };
+    if (status) {
+      where.status = status;
+    }
+    return this.prisma.order.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      include: {
+        order_items: {
+          include: {
+            dish: {
+              select: {
+                name: true,
+                image_url: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -119,8 +178,46 @@ export class OrderRepository {
     });
   }
 
-  create(data: Prisma.OrderUncheckedCreateInput) {
-    return this.prisma.order.create({ data, include: { order_items: true } });
+  async getStaffKitchenPulse() {
+    return this.prisma.orderItem.findMany({
+      where: {
+        status: 'READY',
+      },
+      include: {
+        dish: {
+          select: {
+            name: true,
+          },
+        },
+        order: {
+          select: {
+            table: {
+              select: {
+                table_number: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        id: 'asc',
+      },
+    });
+  }
+
+  async create(data: Prisma.OrderUncheckedCreateInput) {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.create({ data, include: { order_items: true } });
+      
+      if (data.table_id) {
+        await tx.table.update({
+          where: { id: data.table_id },
+          data: { status: 'OCCUPIED' },
+        });
+      }
+      
+      return order;
+    });
   }
 
   update(id: bigint, data: Prisma.OrderUncheckedUpdateInput) {
