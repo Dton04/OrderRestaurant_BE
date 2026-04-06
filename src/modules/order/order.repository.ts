@@ -281,4 +281,31 @@ export class OrderRepository {
     });
     return Boolean(activeOrder);
   }
+
+  async findActiveOrderByTableId(tableId: bigint) {
+    return this.prisma.order.findFirst({
+      where: {
+        table_id: tableId,
+        status: {
+          notIn: ['COMPLETED', 'CANCELLED'],
+        },
+      },
+      include: {
+        order_items: {
+          include: {
+            dish: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                image_url: true,
+              },
+            },
+          },
+        },
+        table: true,
+      },
+      orderBy: { created_at: 'desc' },
+    });
+  }
 }

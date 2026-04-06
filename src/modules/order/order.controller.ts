@@ -64,12 +64,28 @@ export class OrderController {
     return this.orderService.getItemPreparationNotes(BigInt(itemId));
   }
 
+  @Get(':id/checkout-bill')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get Pre-checkout Bill (Staff/Admin)' })
+  getCheckoutBill(@Param('id') id: string) {
+    return this.orderService.getCheckoutBill(BigInt(id));
+  }
+
   @Get('chef/daily-summary')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Chef Daily Summary (Chef/Admin)' })
   getChefDailySummary() {
     return this.orderService.getChefDailySummary();
+  }
+
+  @Get('table/:table_id/active')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Find Active Order by Table (Staff/Admin)' })
+  findActiveOrderByTableId(@Param('table_id') tableId: string) {
+    return this.orderService.findActiveOrderByTableId(BigInt(tableId));
   }
 
   @Get('kitchen/queue')

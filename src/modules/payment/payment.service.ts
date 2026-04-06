@@ -4,15 +4,21 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PaymentRepository } from './payment.repository';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { FinalizePaymentDto } from './dto/finalize-payment.dto';
 import { OrderStatus, Prisma } from '../../generated/prisma/client';
+import * as crypto from 'node:crypto';
+import * as querystring from 'node:querystring';
 
 @Injectable()
 export class PaymentService {
-  constructor(private readonly paymentRepository: PaymentRepository) {}
+  constructor(
+    private readonly paymentRepository: PaymentRepository,
+    private readonly configService: ConfigService,
+  ) { }
 
   async finalize(dto: FinalizePaymentDto) {
     const orderIdValue = dto.order_id;
@@ -160,5 +166,146 @@ export class PaymentService {
   async update(id: bigint, updatePaymentDto: UpdatePaymentDto) {
     await this.findOne(id);
     return this.paymentRepository.update(id, updatePaymentDto);
+  }
+
+  async createVNPayUrl(orderIdValue: string | number, ipAddr: string) {
+    const orderId = BigInt(orderIdValue);
+    const order = await this.paymentRepository.findOrderForFinalize(orderId);
+    if (!order || order.deleted_at) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (
+      order.status !== 'READY' &&
+      order.status !== 'PREPARING' &&
+      order.status !== 'PENDING'
+    ) {
+      throw new BadRequestException('Đơn hàng không ở trạng thái sẵn sàng để thanh toán');
+    }
+
+    const tmnCode = (this.configService.get<string>('VNPAY_TMN_CODE') || '').trim();
+    const secretKey = (this.configService.get<string>('VNPAY_HASH_SECRET') || '').trim();
+    const vnpUrl = (this.configService.get<string>('VNPAY_URL') || '').trim();
+    const returnUrl = (this.configService.get<string>('VNPAY_RETURN_URL') || '').trim();
+
+    const date = new Date();
+    const createDate = this.formatDate(date);
+
+    // VNPay sandbox logic often prefers IPv4
+    const finalizedIpAddr = ipAddr === '::1' || ipAddr === '127.0.0.1' ? '127.0.0.1' : ipAddr;
+
+    // final_amount is Decimal, we need total in integer (cents)
+    const amount = Math.floor(Number(order.final_amount) * 100);
+
+    const vnp_Params: Record<string, string> = {
+      vnp_Version: '2.1.0',
+      vnp_Command: 'pay',
+      vnp_TmnCode: tmnCode,
+      vnp_Locale: 'vn',
+      vnp_CurrCode: 'VND',
+      vnp_TxnRef: orderId.toString(),
+      vnp_OrderInfo: `Thanh toan don hang ${orderId.toString()}`,
+      vnp_OrderType: 'other',
+      vnp_Amount: amount.toString(),
+      vnp_ReturnUrl: returnUrl,
+      vnp_IpAddr: finalizedIpAddr,
+      vnp_CreateDate: createDate,
+    };
+
+    const sortedParams = this.sortObject(vnp_Params);
+
+    // BUILD CHUỖI BĂM: Phải encode từng giá trị
+    const signData = Object.keys(sortedParams)
+      .map((key) => {
+        const value = encodeURIComponent(sortedParams[key]).replace(/%20/g, '+');
+        return `${key}=${value}`;
+      })
+      .join('&');
+
+    const hmac = crypto.createHmac('sha512', secretKey);
+    const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex').toUpperCase();
+
+    // BUILD QUERY STRING: Dùng trực tiếp sortedParams
+    const queryParams = querystring.stringify(sortedParams);
+
+    return `${vnpUrl}?${queryParams}&vnp_SecureHash=${signed}`;
+  }
+
+  async handleVNPayCallback(query: any) {
+    const vnp_Params = { ...query };
+    const secureHash = vnp_Params['vnp_SecureHash'];
+
+    delete vnp_Params['vnp_SecureHash'];
+    delete vnp_Params['vnp_SecureHashType'];
+
+    const sortedParams = this.sortObject(vnp_Params);
+    const secretKey = (this.configService.get<string>('VNPAY_HASH_SECRET') || '').trim();
+
+    const signData = Object.keys(sortedParams)
+      .map((key) => {
+        const value = encodeURIComponent(sortedParams[key]).replace(/%20/g, '+');
+        return `${key}=${value}`;
+      })
+      .join('&');
+
+    const hmac = crypto.createHmac('sha512', secretKey);
+    const signed = hmac.update(Buffer.from(signData, 'utf-8')).digest('hex').toUpperCase();
+
+    if (secureHash?.toUpperCase() !== signed) {
+      return { success: false, message: 'Sai chữ ký bảo mật' };
+    }
+
+    const orderId = BigInt(vnp_Params['vnp_TxnRef']);
+    const responseCode = vnp_Params['vnp_ResponseCode'];
+
+    if (responseCode === '00') {
+      try {
+        const order = await this.paymentRepository.findOrderForFinalize(orderId);
+        if (!order) return { success: false, message: 'Không tìm thấy đơn hàng' };
+
+        const amountNumber = Number(order.final_amount);
+        const pointsAdded = Math.floor(amountNumber / 100000) * 10;
+
+        await this.paymentRepository.finalizePayment({
+          orderId,
+          amount: order.final_amount,
+          method: 'VNPAY',
+          transactionId: vnp_Params['vnp_TransactionNo'],
+          tableId: order.table_id,
+          customerId: order.customer_id,
+          pointsToAdd: pointsAdded,
+        });
+
+        return { success: true, orderId: orderId.toString() };
+      } catch (e) {
+        console.error('VNPay finalize error:', e);
+        return { success: false, message: 'Lỗi khi hoàn tất thanh toán' };
+      }
+    }
+
+    return { success: false, responseCode };
+  }
+
+  private sortObject(obj: any) {
+    const sorted = {};
+    const keys = Object.keys(obj).sort();
+    for (const key of keys) {
+      if (obj[key] !== undefined && obj[key] !== null && obj[key] !== '') {
+        sorted[key] = obj[key];
+      }
+    }
+    return sorted;
+  }
+
+  private formatDate(date: Date): string {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return (
+      date.getFullYear().toString() +
+      pad(date.getMonth() + 1) +
+      pad(date.getDate()) +
+      pad(date.getHours()) +
+      pad(date.getMinutes()) +
+      pad(date.getSeconds())
+    );
   }
 }

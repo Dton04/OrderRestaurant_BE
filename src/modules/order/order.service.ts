@@ -136,6 +136,53 @@ export class OrderService {
     };
   }
 
+  async findActiveOrderByTableId(tableId: bigint) {
+    const order = await this.orderRepository.findActiveOrderByTableId(tableId);
+    return {
+      message: order ? 'Tải đơn hàng đang hoạt động thành công.' : 'Không có đơn hàng hoạt động cho bàn này.',
+      data: order,
+    };
+  }
+
+  async getCheckoutBill(id: bigint) {
+    const order = await this.orderRepository.findById(id);
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    // Filter items that are NOT CANCELLED
+    const activeItems = order.order_items.filter((item) => item.status !== 'CANCELLED');
+
+    // Calculate subtotal from active items (Snapshot price)
+    const subtotal = activeItems.reduce((sum, item) => {
+      return sum + Number(item.price_at_order) * item.quantity;
+    }, 0);
+
+    const discount = Number(order.discount_amount);
+    const finalAmount = subtotal - discount;
+
+    return {
+      message: 'Tải hóa đơn thành công.',
+      data: {
+        order_id: order.id.toString(),
+        table_number: order.table?.table_number || 'Take Away',
+        items: activeItems.map((item) => ({
+          id: item.id.toString(),
+          name: item.dish.name,
+          quantity: item.quantity,
+          unitPrice: Number(item.price_at_order),
+          total: Number(item.price_at_order) * item.quantity,
+          note: item.notes,
+          status: item.status,
+        })),
+        total_amount: subtotal,
+        discount: discount,
+        final_amount: finalAmount,
+        status: order.status,
+      },
+    };
+  }
+
   async getChefDailySummary() {
     const today = new Date();
     const data = await this.orderRepository.getChefDailySummary(today);
